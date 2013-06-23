@@ -21,7 +21,7 @@ class DBus2VDR:
         if self.vdr_obj in self.bus.list_names():
             print("found vdr")
             if self.checkVDRstatus():
-                print("VDR ready")
+                print("vdr ready")
                 self.init_modules()
         self.watchVDRstatus()
         self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
@@ -101,7 +101,7 @@ class Channels(DBusClass):
                                    dbus_interface=self.interface)
 
     def List(self, filter):
-        """filter may contain on of groups|<number>|<name>|<id>"""
+        """filter may contain one of groups|<number>|<name>|<id>"""
         return self.dbus.List(dbus.String(filter), dbus_interface=self.interface)
 
 
