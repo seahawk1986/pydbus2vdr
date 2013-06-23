@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import dbus
 
 class DBus2VDR:
     def __init__(self, bus, modules=["all"]):
@@ -14,7 +15,7 @@ class DBus2VDR:
         for module in self.modules:
             exec("%s(self.bus)" % module)
             setattr(self, module, eval(module+"(self.bus)"))
-            print(module)
+            print("init %s" % module)
 
 class Channels:
     def __init__(self, bus):
@@ -88,9 +89,10 @@ class Plugins:
         self.dbus = self.bus.get_object("de.tvdr.vdr","/Plugins")
         self.interface = 'de.tvdr.vdr.plugin'
 
-    def SVDRPCommand(self, command="", args=""):
+    def SVDRPCommand(self, plugin="", command="", args=""):
         """send SVDRP commands to plugins"""
-        return self.dbus.SVDRPCommand(dbus.String(channel), dbus.String(args),
+        tdbus = self.bus.get_object("de.tvdr.vdr","/Plugins/%s" % plugin)
+        return tdbus.SVDRPCommand(dbus.String(command), dbus.String(args),
                             dbus_interface=self.interface)
 
     def Service(self, id, data):
