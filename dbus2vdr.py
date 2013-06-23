@@ -20,10 +20,14 @@ class DBus2VDR:
             print("init %s" % module)
 
     def checkVDRstatus(self):
-        if not self.hasattr("vdr"):
+        try:
+            if self.vdr:
+                pass
+        except:
             self.vdr = vdr(self.bus())
-        code, message = self.vdr.Status()
-        if code == "Ready":
+        finally:
+            message = self.vdr.Status()
+        if message == "Ready":
             return True
         else:
             return False
