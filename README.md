@@ -1,4 +1,4 @@
 pydbus2vdr
 ==========
 
-Python bindungs for dbus2vdr
+Python bindings for dbus2vdr
