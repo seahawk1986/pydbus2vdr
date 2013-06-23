@@ -2,26 +2,49 @@
 import dbus
 
 class DBus2VDR:
-    def __init__(self, bus, modules=["all"]):
+    def __init__(self, bus, instance=0, modules=["all"]):
         self.bus = bus
-        self.modules = modules
+        self.instance = instance
         if "all" in modules:
             self.modules = ["Recordings", "Channels", "EPG", "Plugins", "Remote",
-                        "Setup", "Shutdown", "Skin", "Timers", "VDR"
+                        "Setup", "Shutdown", "Skin", "Timers", "vdr"
             ]
+        else:
+            self.modules = modules
         self.init_modules()
 
     def init_modules(self):
         for module in self.modules:
             exec("%s(self.bus)" % module)
-            setattr(self, module, eval(module+"(self.bus)"))
+            setattr(self, module, eval(module+"(self.bus, self.instance)"))
             print("init %s" % module)
 
-class Channels:
-    def __init__(self, bus):
+    def checkVDRstatus(self):
+        if not self.hasattr("vdr"):
+            self.vdr = vdr(self.bus())
+        code, message = self.vdr.Status()
+        if code == "Ready":
+            return True
+        else:
+            return False
+
+
+class DBusClass:
+    def __init__(self, bus, obj, interface, instance=0):
         self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Channels")
-        self.interface = 'de.tvdr.vdr.channel'
+        self.vdr_addr = "de.tvdr.vdr"
+        self.interface = "{0}.{1}".format(self.vdr_addr, interface)
+        if instance > 0:
+            self.dbus = self.bus.get_object("{0}{1}".format(self.vdr_addr, instance),
+                                            obj)
+        else:
+            self.dbus = self.bus.get_object(self.vdr_addr, obj)
+
+
+class Channels(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Channels", "channel",
+                         instance)
 
     def Count(self):
         """get count of channels"""
@@ -37,11 +60,9 @@ class Channels:
         return self.dbus.List(dbus.String(filter), dbus_interface=self.interface)
 
 
-class EPG:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/EPG")
-        self.interface = 'de.tvdr.vdr.epg'
+class EPG(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/EPG", 'epg')
 
     def DisableEitScanner(self, timeout=0):
         """disable EIT scanner with timeout (default: 3600)"""
@@ -83,11 +104,9 @@ class EPG:
                              dbus_interface=self.interface)
 
 
-class Plugins:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Plugins")
-        self.interface = 'de.tvdr.vdr.plugin'
+class Plugins(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Plugins", 'plugin')
 
     def SVDRPCommand(self, plugin="", command="", args=""):
         """send SVDRP commands to plugins"""
@@ -102,14 +121,13 @@ class Plugins:
 
     def List(self):
         """list all loaded plugins"""
-        return self.dbus.Service(dbus_interface='de.tvdr.vdr.pluginmanager')
+        return self.dbus.Service(dbus_interface='{0}.pluginmanager'.format(
+                                                                self.vdr_addr))
 
 
-class Recordings:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Recordings")
-        self.interface = 'de.tvdr.vdr.recording'
+class Recordings(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Recordings", 'recording')
 
     def Get(self, recording):
         """Get info about a recording - use it's number or path as argument"""
@@ -143,11 +161,9 @@ class Recordings:
                                                 dbus_interface = self.interface)
 
 
-class Remote:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Remote")
-        self.interface = 'de.tvdr.vdr.remote'
+class Remote(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Remote", 'remote')
 
     def Enable(self):
         """enable remote for VDR"""
@@ -198,11 +214,9 @@ class Remote:
         return self.dbus.GetVolume(dbus_interface = self.interface)
 
 
-class Setup:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Setup")
-        self.interface = 'de.tvdr.vdr.setup'
+class Setup(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Setup", 'setup')
 
     def List(self):
         return self.dbus.List(dbus_interface = self.interface)
@@ -234,11 +248,9 @@ class Setup:
         return self.dbus.Del(parameter, dbus_interface = self.interface)
 
 
-class Shutdown:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Shutdown")
-        self.interface = 'de.tvdr.vdr.shutdown'
+class Shutdown(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Shutdown", 'shutdown')
 
     def ConfirmShutdown(self, ignore_user=False):
         return self.dbus.ConfirmShutdown(dbus.Boolean(ignore_user),
@@ -251,11 +263,9 @@ class Shutdown:
         return self.dbus.SetUserInactive(dbus_interface = self.interface)
 
 
-class Skin:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Skin")
-        self.interface = 'de.tvdr.vdr.skin'
+class Skin(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Skin", 'skin')
 
     def QueueMessage(self, message):
         return self.dbus.QueueMessage(dbus.String(message),
@@ -272,11 +282,9 @@ class Skin:
                                  dbus_interface = self.interface)
 
 
-class Timers:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/Timers")
-        self.interface = 'de.tvdr.vdr.timer'
+class Timers(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Timers", 'timer')
 
     def List(self):
         return self.dbus.List(dbus_interface = self.interface)
@@ -300,11 +308,9 @@ class Timers:
                                 dbus_interface = self.interface)
 
 
-class VDR:
-    def __init__(self, bus):
-        self.bus = bus
-        self.dbus = self.bus.get_object("de.tvdr.vdr","/vdr")
-        self.interface = 'de.tvdr.vdr'
+class vdr(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/vdr", 'vdr')
 
     def Status(self):
         return self.dbus.Status(dbus_interface = self.interface)
