@@ -23,10 +23,10 @@ class DBus2VDR:
         try:
             if self.vdr:
                 pass
-        except:
-            self.vdr = vdr(self.bus())
-        finally:
-            message = self.vdr.Status()
+        except AttributeError:
+            self.modules.append('vdr')
+            self.init_modules()
+        message = self.vdr.Status()
         if message == "Ready":
             return True
         else:
