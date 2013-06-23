@@ -21,8 +21,7 @@ class DBus2VDR:
 
     def checkVDRstatus(self):
         try:
-            if self.vdr:
-                pass
+            getattr(self, 'vdr')
         except AttributeError:
             self.modules.append('vdr')
             self.init_modules()
