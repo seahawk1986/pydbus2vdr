@@ -5,19 +5,34 @@ class DBus2VDR:
     def __init__(self, bus, instance=0, modules=["all"]):
         self.bus = bus
         self.instance = instance
+        self.vdr_addr = "de.tvdr.vdr"
+        self.update = True
         if "all" in modules:
             self.modules = ["Recordings", "Channels", "EPG", "Plugins", "Remote",
                         "Setup", "Shutdown", "Skin", "Timers", "vdr"
             ]
         else:
             self.modules = modules
-        self.init_modules()
+        if instance > 0:
+            self.vdr_obj = "{0}{1}".format(self.vdr_addr, instance)
+        else:
+            self.vdr_obj = self.vdr_addr
+
+        if self.vdr_obj in self.bus.list_names():
+            print("found vdr")
+            if self.checkVDRstatus():
+                print("VDR ready")
+                self.init_modules()
+        self.watchVDRstatus()
+        self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
 
     def init_modules(self):
-        for module in self.modules:
-            exec("%s(self.bus)" % module)
-            setattr(self, module, eval(module+"(self.bus, self.instance)"))
-            print("init %s" % module)
+        if self.update:
+            for module in self.modules:
+                exec("%s(self.bus)" % module)
+                setattr(self, module, eval(module+"(self.bus, self.instance)"))
+                print("init %s" % module)
+                self.update = False
 
     def checkVDRstatus(self):
         try:
@@ -29,7 +44,34 @@ class DBus2VDR:
         if message == "Ready":
             return True
         else:
+            self.update = True
             return False
+
+    def watchVDRstatus(self):
+        self.bus.add_signal_receiver(self.dbus2vdr_signal,
+                                     bus_name=self.vdr_obj,
+                                     sender_keyword='sender',
+                                     member_keyword='member',
+                                     interface_keyword='interface',
+                                     path_keyword='path',
+                                     )
+    def dbus2vdr_signal(self, *args, **kwargs):
+        print(kwargs['member'])
+        if kwargs['member'] == "Ready":
+            self.init_modules()
+        if kwargs['member'] == "Stop" or kwargs['member'] == "Start":
+            self.update = True
+
+    def watchBus4VDR(self):
+        self.bus.watch_name_owner(self.vdr_obj, self.name_owner_changed)
+
+    def name_owner_changed(self, *args, **kwargs):
+        if len(args[0]) == 0:
+            print("vdr has no dbus name ownership")
+            self.update = True
+        else:
+            print("vdr got dbus name ownership")
+        print(args[0])
 
 
 class DBusClass:
