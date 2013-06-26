@@ -39,13 +39,20 @@ class DBus2VDR:
             getattr(self, 'vdr')
         except AttributeError:
             self.modules.append('vdr')
-            self.init_modules()
-        message = self.vdr.Status()
-        if message == "Ready":
-            return True
-        else:
-            self.update = True
-            return False
+            try:
+                self.init_modules()
+            except:
+                return False
+        finally:
+            try:
+                message = self.vdr.Status()
+                if message == "Ready":
+                    return True
+                else:
+                    self.update = True
+                    return False
+            except:
+                return False
 
     def watchVDRstatus(self):
         self.bus.add_signal_receiver(self.dbus2vdr_signal,
@@ -70,7 +77,7 @@ class DBus2VDR:
             print("vdr has no dbus name ownership")
             self.update = True
         else:
-            print("vdr got dbus name ownership")
+            print("vdr has dbus name ownership")
         print(args[0])
 
 
@@ -85,6 +92,20 @@ class DBusClass:
         else:
             self.dbus = self.bus.get_object(self.vdr_addr, obj)
 
+    def boolReturn(self, code, target=250):
+        if code == 250:
+            return True
+        else:
+            return False
+
+    def dbusSend(self, dbus_call, *args, **kwargs):
+        try:
+            print("Sending {0}".format(dbus_call))
+            return dbus_call(*args, **kwargs)
+        except Exception as error:
+            print("Error: {0}".format(error))
+            return False
+
 
 class Channels(DBusClass):
     def __init__(self, bus, instance=0):
@@ -97,8 +118,11 @@ class Channels(DBusClass):
 
     def GetFromTo(self, from_index, to_index):
         """get channels between from_index and to_index"""
-        return self.dbus.GetFromTo(dbus.Int32(from_index), dbus.Int32(to_index),
-                                   dbus_interface=self.interface)
+        return self.dbus.GetFromTo(
+                             dbus.Int32(from_index),
+                             dbus.Int32(to_index),
+                             dbus_interface=self.interface
+                             )
 
     def List(self, filter):
         """filter may contain one of groups|<number>|<name>|<id>"""
@@ -190,18 +214,22 @@ class Recordings(DBusClass):
                                 signature='vv')
 
     def AddExtraVideoDirectory(self, path):
+        """add extra video directory (needs patch for vdr)"""
         return self.dbus.AddExtraVideoDirectory(dbus.String(path),
                                                 dbus_interface = self.interface)
 
     def DeleteExtraVideoDirectory(self, path):
+        """remove extra video directory (needs patch for vdr)"""
         return self.dbus.DeleteExtraVideoDirectory(dbus.String(path),
                                                 dbus_interface = self.interface)
 
     def ClearExtraVideoDirectories(self):
+        """remove all extra video directories (needs patch for vdr)"""
         return self.dbus.ClearExtraVideoDirectories(
                                                 dbus_interface = self.interface)
 
     def ListExtraVideoDirectories(self):
+        """list all extra video directories (needs patch for vdr)"""
         return self.dbus.ListExtraVideoDirectories(
                                                 dbus_interface = self.interface)
 
@@ -223,10 +251,12 @@ class Remote(DBusClass):
         return self.dbus.Status(dbus_interface = self.interface)
 
     def HitKey(self, key):
+        """send key to vdr"""
         return self.dbus.HitKey(dbus.String(key),
                                 dbus_interface = self.interface)
 
     def HitKeys(self, keylist):
+        """send a list of keys to vdr"""
         return self.dbus.HitKeys(dbus.Array(keylist, "s"),
                                  dbus_interface = self.interface, )
     def AskUser(self, title, items):
@@ -264,6 +294,7 @@ class Setup(DBusClass):
         super().__init__(bus, "/Setup", 'setup')
 
     def List(self):
+        """list all setup entries"""
         return self.dbus.List(dbus_interface = self.interface)
 
     def Get(self, parameter):
@@ -298,13 +329,17 @@ class Shutdown(DBusClass):
         super().__init__(bus, "/Shutdown", 'shutdown')
 
     def ConfirmShutdown(self, ignore_user=False):
+        """ask vdr if something would inhibit a shutdown,\
+        use ignore_user=True to ignore user activity"""
         return self.dbus.ConfirmShutdown(dbus.Boolean(ignore_user),
                                          dbus_interface = self.interface)
 
     def ManualStart(self):
+        """check if NextWakeupTime was within 600 s around the start of the vdr"""
         return self.dbus.ManualStart(dbus_interface = self.interface)
 
     def SetUserInactive(self):
+        """set user inactive"""
         return self.dbus.SetUserInactive(dbus_interface = self.interface)
 
 
@@ -313,16 +348,20 @@ class Skin(DBusClass):
         super().__init__(bus, "/Skin", 'skin')
 
     def QueueMessage(self, message):
+        """send a message to the vdr OSD"""
         return self.dbus.QueueMessage(dbus.String(message),
                                       dbus_interface = self.interface)
 
     def ListSkins(self):
+        """list aviable vdr skins"""
         return self.dbus.ListSkins(dbus_interface = self.interface)
 
     def CurrentSkin(self):
+        """get current skin"""
         return self.dbus.CurrentSkin(dbus_interface = self.interface)
 
     def SetSkin(self, skin):
+        """set vdr skin"""
         return self.dbus.SetSkin(dbus.String(skin),
                                  dbus_interface = self.interface)
 
@@ -332,6 +371,7 @@ class Timers(DBusClass):
         super().__init__(bus, "/Timers", 'timer')
 
     def List(self):
+        """list all timers"""
         return self.dbus.List(dbus_interface = self.interface)
 
     def Next(self):
@@ -345,10 +385,12 @@ class Timers(DBusClass):
         return self.dbus.Next(dbus_interface = self.interface)
 
     def New(self, timer):
+        """create a new timer"""
         return self.dbus.New(dbus.String(timer),
                              dbus_interface = self.interface)
 
     def Delete(self, id):
+        """delete a timer using it's current id"""
         return self.dbus.Delete(dbus.Int32(id),
                                 dbus_interface = self.interface)
 
@@ -358,4 +400,5 @@ class vdr(DBusClass):
         super().__init__(bus, "/vdr", 'vdr')
 
     def Status(self):
+        """get vdr status (Start|Ready|Stop)"""
         return self.dbus.Status(dbus_interface = self.interface)
