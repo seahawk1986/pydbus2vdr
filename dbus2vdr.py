@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import dbus
+import logging
 
 class DBus2VDR:
     def __init__(self, bus, instance=0, modules=["all"]):
@@ -193,6 +194,26 @@ class Plugins(DBusClass):
         """list all loaded plugins"""
         return self.dbus.List(dbus_interface='{0}.pluginmanager'.format(
                                                                 self.vdr_addr))
+
+    def get_dbusPlugins(self):
+        '''wrapper for dbus plugin list'''
+        logging.info(u"asking vdr for plugins")
+        raw = self.List()
+        self.plugins = {}
+        for name, version in raw:
+            logging.debug(u"found plugin %s %s"%(name,version))
+            self.plugins[name]=version
+        return self.plugins
+
+    def check_plugin(self,plugin):
+        try:
+            len(self.plugins)
+        except:
+            self.get_dbusPlugins()
+        if plugin in self.plugins:
+            return True
+        else:
+            return False
 
 
 class Recordings(DBusClass):
