@@ -19,9 +19,9 @@ class DBus2VDR:
             self.vdr_obj = self.vdr_addr
 
         if self.vdr_obj in self.bus.list_names():
-            print("found vdr")
+            #print("found vdr")
             if self.checkVDRstatus():
-                print("vdr ready")
+                #print("vdr ready")
                 self.init_modules()
         self.watchVDRstatus()
         self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
@@ -31,7 +31,7 @@ class DBus2VDR:
             for module in self.modules:
                 exec("%s(self.bus)" % module)
                 setattr(self, module, eval(module+"(self.bus, self.instance)"))
-                print("init %s" % module)
+                #print("init %s" % module)
                 self.update = False
 
     def checkVDRstatus(self):
@@ -63,7 +63,7 @@ class DBus2VDR:
                                      path_keyword='path',
                                      )
     def dbus2vdr_signal(self, *args, **kwargs):
-        print(kwargs['member'])
+        #print(kwargs['member'])
         if kwargs['member'] == "Ready":
             self.init_modules()
         if kwargs['member'] == "Stop" or kwargs['member'] == "Start":
@@ -74,11 +74,12 @@ class DBus2VDR:
 
     def name_owner_changed(self, *args, **kwargs):
         if len(args[0]) == 0:
-            print("vdr has no dbus name ownership")
+            #print("vdr has no dbus name ownership")
             self.update = True
         else:
-            print("vdr has dbus name ownership")
-        print(args[0])
+            pass
+            #print("vdr has dbus name ownership")
+        #print(args[0])
 
 
 class DBusClass:
@@ -100,10 +101,10 @@ class DBusClass:
 
     def dbusSend(self, dbus_call, *args, **kwargs):
         try:
-            print("Sending {0}".format(dbus_call))
+            #print("Sending {0}".format(dbus_call))
             return dbus_call(*args, **kwargs)
         except Exception as error:
-            print("Error: {0}".format(error))
+            #print("Error: {0}".format(error))
             return False
 
 
@@ -190,7 +191,7 @@ class Plugins(DBusClass):
 
     def List(self):
         """list all loaded plugins"""
-        return self.dbus.Service(dbus_interface='{0}.pluginmanager'.format(
+        return self.dbus.List(dbus_interface='{0}.pluginmanager'.format(
                                                                 self.vdr_addr))
 
 
