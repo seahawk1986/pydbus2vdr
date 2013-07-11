@@ -3,14 +3,18 @@ import dbus
 import logging
 
 class DBus2VDR:
-    def __init__(self, bus, instance=0, modules=["all"]):
-        self.bus = bus
+    def __init__(self, bus=None, instance=0, modules=["all"], watchdog=False):
+        """Main Class: DBus:Session- or System-Bus, vdr instance, modules, watchdog for vdr restart"""
+        if bus:
+            self.bus = bus
+        else:
+            self.bus = dbus.SystemBus()
         self.instance = instance
         self.vdr_addr = "de.tvdr.vdr"
         self.update = True
         if "all" in modules:
             self.modules = ["Recordings", "Channels", "EPG", "Plugins", "Remote",
-                        "Setup", "Shutdown", "Skin", "Timers", "vdr"
+                        "Setup", "Shutdown", "Skin", "Timers", "vdr", "Status"
             ]
         else:
             self.modules = modules
@@ -24,8 +28,9 @@ class DBus2VDR:
             if self.checkVDRstatus():
                 #print("vdr ready")
                 self.init_modules()
-        self.watchVDRstatus()
-        self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
+        if watchdog:
+            self.watchVDRstatus()
+            self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
 
     def init_modules(self):
         if self.update:
@@ -424,3 +429,13 @@ class vdr(DBusClass):
     def Status(self):
         """get vdr status (Start|Ready|Stop)"""
         return self.dbus.Status(dbus_interface = self.interface)
+
+class Status(DBusClass):
+    def __init__(self, bus, instance=0):
+        super().__init__(bus, "/Status", 'status')
+
+    def IsReplaying(self):
+        """check if vdr is replaying a recording
+        returns the title, recording path and a boolean value"""
+        title, path, playerActive = self.dbus.IsReplaying(dbus_interface = self.interface)
+        return title, path, playerActive
