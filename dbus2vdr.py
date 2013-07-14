@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import dbus
 import logging
+from collections import defaultdict
 
 class DBus2VDR:
     def __init__(self, bus=None, instance=0, modules=["all"], watchdog=False):
@@ -11,6 +12,8 @@ class DBus2VDR:
             self.bus = dbus.SystemBus()
         self.instance = instance
         self.vdr_addr = "de.tvdr.vdr"
+        self.EVENT_CALLBACKS = defaultdict(list)
+        self.LISTENERS = list()
         self.update = True
         if "all" in modules:
             self.modules = ["Recordings", "Channels", "EPG", "Plugins", "Remote",
@@ -74,6 +77,8 @@ class DBus2VDR:
             self.init_modules()
         if kwargs['member'] == "Stop" or kwargs['member'] == "Start":
             self.update = True
+        for callback in self.EVENT_CALLBACKS.get(kwargs['member'], ()):
+            callback(*args, **kwargs)
 
     def watchBus4VDR(self):
         self.bus.watch_name_owner(self.vdr_obj, self.name_owner_changed)
@@ -81,11 +86,27 @@ class DBus2VDR:
     def name_owner_changed(self, *args, **kwargs):
         if len(args[0]) == 0:
             #print("vdr has no dbus name ownership")
+            if not self.update:
+                # VDR lost connection to dbus without sending a "Stop", so let's assume a crash
+                for callback in self.EVENT_CALLBACKS.get("Stop", ()):
+                    callback(*args, **kwargs)
             self.update = True
         else:
             pass
             #print("vdr has dbus name ownership")
         #print(args[0])
+
+    def onSignal(self, event, callback=None):
+        """register a callback for "event"."""
+        print(event, callback)
+        if callback is not None:
+            self.EVENT_CALLBACKS[event].append(callback)
+            return callback
+        else:
+            def wrapper(callback):
+                self.EVENT_CALLBACKS[event].append(callback)
+                return callback
+            return wrapper
 
 
 class DBusClass:
