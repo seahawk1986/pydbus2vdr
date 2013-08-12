@@ -223,11 +223,11 @@ class Plugins(DBusClass):
 
     def get_dbusPlugins(self):
         '''wrapper for dbus plugin list'''
-        logging.info(u"asking vdr for plugins")
+        logging.info("asking vdr for plugins")
         raw = self.List()
         self.plugins = {}
         for name, version in raw:
-            logging.debug(u"found plugin %s %s"%(name,version))
+            logging.debug("found plugin %s %s"%(name,version))
             self.plugins[name]=version
         return self.plugins
 
