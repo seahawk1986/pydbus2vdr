@@ -380,7 +380,7 @@ class Shutdown(DBusClass):
         """ask vdr if something would inhibit a shutdown,\
         use ignore_user=True to ignore user activity"""
         return self.dbus.ConfirmShutdown(dbus.Boolean(ignore_user),
-                                         dbus_interface = self.interface)
+                                         dbus_interface = self.interface, timeout=120)
 
     def ManualStart(self):
         """check if NextWakeupTime was within 600 s around the start of the vdr"""
