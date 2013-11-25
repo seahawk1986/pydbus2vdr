@@ -109,7 +109,7 @@ class DBus2VDR:
             return wrapper
 
 
-class DBusClass:
+class DBusClass(object):
     def __init__(self, bus, obj, interface, instance=0):
         self.bus = bus
         self.vdr_addr = "de.tvdr.vdr"
@@ -137,7 +137,7 @@ class DBusClass:
 
 class Channels(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Channels", "channel",
+        super(Channels, self).__init__(bus, "/Channels", "channel",
                          instance)
 
     def Count(self):
@@ -159,7 +159,7 @@ class Channels(DBusClass):
 
 class EPG(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/EPG", 'epg')
+        super(EPG, self).__init__(bus, "/EPG", 'epg')
 
     def DisableEitScanner(self, timeout=0):
         """disable EIT scanner with timeout (default: 3600)"""
@@ -203,7 +203,7 @@ class EPG(DBusClass):
 
 class Plugins(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Plugins", 'plugin')
+        super(Plugins, self).__init__(bus, "/Plugins", 'plugin')
 
     def SVDRPCommand(self, plugin="", command="", args=""):
         """send SVDRP commands to plugins"""
@@ -244,7 +244,7 @@ class Plugins(DBusClass):
 
 class Recordings(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Recordings", 'recording')
+        super(Recordings, self).__init__(bus, "/Recordings", 'recording')
 
     def Get(self, recording):
         """Get info about a recording - use it's number or path as argument"""
@@ -284,7 +284,7 @@ class Recordings(DBusClass):
 
 class Remote(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Remote", 'remote')
+        super(Remote, self).__init__(bus, "/Remote", 'remote')
 
     def Enable(self):
         """enable remote for VDR"""
@@ -339,7 +339,7 @@ class Remote(DBusClass):
 
 class Setup(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Setup", 'setup')
+        super(Setup, self).__init__(bus, "/Setup", 'setup')
 
     def List(self):
         """list all setup entries"""
@@ -374,7 +374,7 @@ class Setup(DBusClass):
 
 class Shutdown(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Shutdown", 'shutdown')
+        super(Shutdown, self).__init__(bus, "/Shutdown", 'shutdown')
 
     def ConfirmShutdown(self, ignore_user=False):
         """ask vdr if something would inhibit a shutdown,\
@@ -393,7 +393,7 @@ class Shutdown(DBusClass):
 
 class Skin(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Skin", 'skin')
+        super(Skin, self).__init__(bus, "/Skin", 'skin')
 
     def QueueMessage(self, message):
         """send a message to the vdr OSD"""
@@ -416,7 +416,7 @@ class Skin(DBusClass):
 
 class Timers(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Timers", 'timer')
+        super(Timers, self).__init__(bus, "/Timers", 'timer')
 
     def List(self):
         """list all timers"""
@@ -445,7 +445,7 @@ class Timers(DBusClass):
 
 class vdr(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/vdr", 'vdr')
+        super(vdr, self).__init__(bus, "/vdr", 'vdr')
 
     def Status(self):
         """get vdr status (Start|Ready|Stop)"""
@@ -453,7 +453,7 @@ class vdr(DBusClass):
 
 class Status(DBusClass):
     def __init__(self, bus, instance=0):
-        super().__init__(bus, "/Status", 'status')
+        super(Status, self).__init__(bus, "/Status", 'status')
 
     def IsReplaying(self):
         """check if vdr is replaying a recording
