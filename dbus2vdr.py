@@ -251,10 +251,10 @@ class Recordings(DBusClass):
         return self.dbus.Get(recording, dbus_interface = self.interface,
                              signature='v')
                              
-    def ChangeName(self, recording_id, path):
+    def ChangeName(self, recording, path):
         """change name of a recording resp. move it - 
         expects the recording ID or current path and the new path"""
-        return self.dbus.ChangeName(recording_id, path,
+        return self.dbus.ChangeName(recording, path,
                                     dbus_interface = self.interface,
                                     signature='vs')
 
