@@ -250,6 +250,13 @@ class Recordings(DBusClass):
         """Get info about a recording - use it's number or path as argument"""
         return self.dbus.Get(recording, dbus_interface = self.interface,
                              signature='v')
+                             
+    def ChangeName(self, recording_id, path):
+        """change name of a recording resp. move it - 
+        expects the recording ID or current path and the new path"""
+        return self.dbus.ChangeName(recording_id, path,
+                                    dbus_interface = self.interface,
+                                    signature='vs')
 
     def List(self):
         """List recordings"""
