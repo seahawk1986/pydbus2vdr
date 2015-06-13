@@ -415,10 +415,10 @@ class Shutdown(DBusClass):
         """set user inactive"""
         return self.dbus.SetUserInactive(dbus_interface=self.interface)
 
-    def NextWakeupTimer(self):
+    def NextWakeupTime(self):
         """get next wakeup time and reason for wakeup,
         e.g. "timer" or "plugin:<name>"""
-        return self.dbus.NextWakeupTimer(dbus_interface=self.interface)
+        return self.dbus.NextWakeupTime(dbus_interface=self.interface)
 
 
 class Skin(DBusClass):
