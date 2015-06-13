@@ -144,8 +144,7 @@ class DBusClass(object):
 
 class Channels(DBusClass):
     def __init__(self, bus, instance=0):
-        super(Channels, self).__init__(bus, "/Channels", "channel",
-                         instance)
+        super(Channels, self).__init__(bus, "/Channels", "channel", instance)
 
     def Count(self):
         """get count of channels"""
@@ -263,7 +262,7 @@ class Recordings(DBusClass):
         """change name of a recording resp. move it -
         expects the recording ID or current path and the new path"""
         return self.dbus.ChangeName(recording, path,
-                                    dbus_interface = self.interface,
+                                    dbus_interface=self.interface,
                                     signature='vs')
 
     def List(self):
@@ -404,7 +403,7 @@ class Shutdown(DBusClass):
         """ask vdr if something would inhibit a shutdown,\
         use ignore_user=True to ignore user activity"""
         return self.dbus.ConfirmShutdown(dbus.Boolean(ignore_user),
-                                         dbus_interface = self.interface,
+                                         dbus_interface=self.interface,
                                          timeout=120)
 
     def ManualStart(self):
