@@ -3,9 +3,11 @@ import dbus
 import logging
 from collections import defaultdict
 
+
 class DBus2VDR:
     def __init__(self, bus=None, instance=0, modules=["all"], watchdog=False):
-        """Main Class: DBus:Session- or System-Bus, vdr instance, modules, watchdog for vdr restart"""
+        """Main Class: DBus:Session- or System-Bus, vdr instance,
+        modules, watchdog for vdr restart"""
         if bus:
             self.bus = bus
         else:
@@ -16,8 +18,9 @@ class DBus2VDR:
         self.LISTENERS = list()
         self.update = True
         if "all" in modules:
-            self.modules = ["Recordings", "Channels", "EPG", "Plugins", "Remote",
-                        "Setup", "Shutdown", "Skin", "Timers", "vdr", "Status"
+            self.modules = [
+                "Recordings", "Channels", "EPG", "Plugins", "Remote",
+                "Setup", "Shutdown", "Skin", "Timers", "vdr", "Status"
             ]
         else:
             self.modules = modules
@@ -33,13 +36,15 @@ class DBus2VDR:
                 self.init_modules()
         if watchdog:
             self.watchVDRstatus()
-            self.watchBus4VDR() #check for name (de-)registering, needed if vdr crashes
+            self.watchBus4VDR()  # check for name (de-)registering,
+                                 # needed if vdr crashes
 
     def init_modules(self):
         if self.update:
             for module in self.modules:
                 exec("%s(self.bus)" % module)
-                setattr(self, module, eval(module+"(self.bus, self.instance)"))
+                setattr(self, module, eval(
+                    module + "(self.bus, self.instance)"))
                 #print("init %s" % module)
                 self.update = False
 
@@ -71,6 +76,7 @@ class DBus2VDR:
                                      interface_keyword='interface',
                                      path_keyword='path',
                                      )
+
     def dbus2vdr_signal(self, *args, **kwargs):
         #print(kwargs['member'])
         if kwargs['member'] == "Ready":
@@ -87,7 +93,8 @@ class DBus2VDR:
         if len(args[0]) == 0:
             #print("vdr has no dbus name ownership")
             if not self.update:
-                # VDR lost connection to dbus without sending a "Stop", so let's assume a crash
+                # VDR lost connection to dbus without sending a "Stop",
+                # so let's assume a crash
                 for callback in self.EVENT_CALLBACKS.get("Stop", ()):
                     callback(*args, **kwargs)
             self.update = True
@@ -115,8 +122,8 @@ class DBusClass(object):
         self.vdr_addr = "de.tvdr.vdr"
         self.interface = "{0}.{1}".format(self.vdr_addr, interface)
         if instance > 0:
-            self.dbus = self.bus.get_object("{0}{1}".format(self.vdr_addr, instance),
-                                            obj)
+            self.dbus = self.bus.get_object(
+                "{0}{1}".format(self.vdr_addr, instance), obj)
         else:
             self.dbus = self.bus.get_object(self.vdr_addr, obj)
 
@@ -147,14 +154,14 @@ class Channels(DBusClass):
     def GetFromTo(self, from_index, to_index):
         """get channels between from_index and to_index"""
         return self.dbus.GetFromTo(
-                             dbus.Int32(from_index),
-                             dbus.Int32(to_index),
-                             dbus_interface=self.interface
-                             )
+            dbus.Int32(from_index),
+            dbus.Int32(to_index),
+            dbus_interface=self.interface)
 
     def List(self, filter):
         """filter may contain one of groups|<number>|<name>|<id>"""
-        return self.dbus.List(dbus.String(filter), dbus_interface=self.interface)
+        return self.dbus.List(dbus.String(filter),
+                              dbus_interface=self.interface)
 
 
 class EPG(DBusClass):
@@ -164,14 +171,15 @@ class EPG(DBusClass):
     def DisableEitScanner(self, timeout=0):
         """disable EIT scanner with timeout (default: 3600)"""
         return self.dbus.DisableEitScanner(dbus.Int32(timeout),
-                                               dbus_interface=self.interface)
+                                           dbus_interface=self.interface)
 
     def EnableEitScanner(self):
         """enable EIT scanner"""
         return self.dbus.EnableEitScanner(dbus_interface=self.interface)
 
     def ClearEpg(self, timeout=0):
-        """clear EPG data with a value for inactivity timeout of eit-scanner (default: 10)"""
+        """clear EPG data with a value for inactivity timeout of
+        eit-scanner (default: 10)"""
         return self.dbus.ClearEpg(dbus.Int32(timeout),
                                   dbus_interface=self.interface)
 
@@ -193,12 +201,12 @@ class EPG(DBusClass):
     def Next(self, channel=""):
         """get next event of given or all channels if string is empty"""
         return self.dbus.Next(dbus.String(channel),
-                             dbus_interface=self.interface)
+                              dbus_interface=self.interface)
 
     def At(self, channel="", time=0):
         """get next event of given or all channels if string is empty"""
         return self.dbus.At(dbus.String(channel), dbus.UInt64(time),
-                             dbus_interface=self.interface)
+                            dbus_interface=self.interface)
 
 
 class Plugins(DBusClass):
@@ -207,9 +215,9 @@ class Plugins(DBusClass):
 
     def SVDRPCommand(self, plugin="", command="", args=""):
         """send SVDRP commands to plugins"""
-        tdbus = self.bus.get_object("de.tvdr.vdr","/Plugins/%s" % plugin)
+        tdbus = self.bus.get_object("de.tvdr.vdr", "/Plugins/%s" % plugin)
         return tdbus.SVDRPCommand(dbus.String(command), dbus.String(args),
-                            dbus_interface=self.interface)
+                                  dbus_interface=self.interface)
 
     def Service(self, id, data):
         """call Service method of plugins"""
@@ -218,8 +226,8 @@ class Plugins(DBusClass):
 
     def List(self):
         """list all loaded plugins"""
-        return self.dbus.List(dbus_interface='{0}.pluginmanager'.format(
-                                                                self.vdr_addr))
+        return self.dbus.List(
+            dbus_interface='{0}.pluginmanager'.format(self.vdr_addr))
 
     def get_dbusPlugins(self):
         '''wrapper for dbus plugin list'''
@@ -227,11 +235,11 @@ class Plugins(DBusClass):
         raw = self.List()
         self.plugins = {}
         for name, version in raw:
-            logging.debug("found plugin %s %s"%(name,version))
-            self.plugins[name]=version
+            logging.debug(u"found plugin %s %s" % (name, version))
+            self.plugins[name] = version
         return self.plugins
 
-    def check_plugin(self,plugin):
+    def check_plugin(self, plugin):
         try:
             len(self.plugins)
         except:
@@ -248,11 +256,11 @@ class Recordings(DBusClass):
 
     def Get(self, recording):
         """Get info about a recording - use it's number or path as argument"""
-        return self.dbus.Get(recording, dbus_interface = self.interface,
+        return self.dbus.Get(recording, dbus_interface=self.interface,
                              signature='v')
-                             
+
     def ChangeName(self, recording, path):
-        """change name of a recording resp. move it - 
+        """change name of a recording resp. move it -
         expects the recording ID or current path and the new path"""
         return self.dbus.ChangeName(recording, path,
                                     dbus_interface = self.interface,
@@ -262,31 +270,34 @@ class Recordings(DBusClass):
         """List recordings"""
         return self.dbus.List(dbus_interface=self.interface)
 
-    def Play(self,recording, time=-1):
-        """play a recording at time dbus.String('hh:mm:ss.f') or frame dbus.Int32(<frame>)
-        If framenumber is -1, playing is resumed at the last saved position"""
-        return self.dbus.Play(recording, time, dbus_interface = self.interface,
-                                signature='vv')
+    def Play(self, recording, time=-1):
+        """play a recording at time dbus.String('hh:mm:ss.f') or
+        frame dbus.Int32(<frame>). If framenumber is -1,
+        playing is resumed at the last saved position"""
+        return self.dbus.Play(recording, time, dbus_interface=self.interface,
+                              signature='vv')
 
     def AddExtraVideoDirectory(self, path):
         """add extra video directory (needs patch for vdr)"""
         return self.dbus.AddExtraVideoDirectory(dbus.String(path),
-                                                dbus_interface = self.interface)
+                                                dbus_interface=self.interface)
 
     def DeleteExtraVideoDirectory(self, path):
         """remove extra video directory (needs patch for vdr)"""
-        return self.dbus.DeleteExtraVideoDirectory(dbus.String(path),
-                                                dbus_interface = self.interface)
+        return self.dbus.DeleteExtraVideoDirectory(
+            dbus.String(path),
+            dbus_interface=self.interface
+        )
 
     def ClearExtraVideoDirectories(self):
         """remove all extra video directories (needs patch for vdr)"""
         return self.dbus.ClearExtraVideoDirectories(
-                                                dbus_interface = self.interface)
+            dbus_interface=self.interface)
 
     def ListExtraVideoDirectories(self):
         """list all extra video directories (needs patch for vdr)"""
         return self.dbus.ListExtraVideoDirectories(
-                                                dbus_interface = self.interface)
+            dbus_interface=self.interface)
 
 
 class Remote(DBusClass):
@@ -295,53 +306,57 @@ class Remote(DBusClass):
 
     def Enable(self):
         """enable remote for VDR"""
-        return self.dbus.Enable(dbus_interface = self.interface)
+        return self.dbus.Enable(dbus_interface=self.interface)
 
     def Disable(self):
         """disable remote for VDR"""
-        return self.dbus.Disable(dbus_interface = self.interface)
+        return self.dbus.Disable(dbus_interface=self.interface)
 
     def Status(self):
         """show status of remote in VDR"""
-        return self.dbus.Status(dbus_interface = self.interface)
+        return self.dbus.Status(dbus_interface=self.interface)
 
     def HitKey(self, key):
         """send key to vdr"""
         return self.dbus.HitKey(dbus.String(key),
-                                dbus_interface = self.interface)
+                                dbus_interface=self.interface)
 
     def HitKeys(self, keylist):
         """send a list of keys to vdr"""
         return self.dbus.HitKeys(dbus.Array(keylist, "s"),
-                                 dbus_interface = self.interface, )
+                                 dbus_interface=self.interface, )
+
     def AskUser(self, title, items):
         """display list of strings on the osd and let the user select one"""
         return self.dbus.HitKey(dbus.String(title), dbus.Array(items, "s"),
-                                dbus_interface = self.interface)
+                                dbus_interface=self.interface)
         ''' TODO: automatic callback for result
-        The zero-based index of the selected item will be returned with the signal "AskUserSelect",
+        The zero-based index of the selected item will be returned
+        with the signal "AskUserSelect",
         the first parameter is the title-string, the second the index.
-        An index of -1 means, no item is selected (or osd closed because of a timeout).
+        An index of -1 means, no item is selected
+        (or osd closed because of a timeout).
         '''
 
     def CallPlugin(self, plugin):
         """open the main menu entry of a plugin"""
         return self.dbus.CallPlugins(dbus.String(plugin),
-                                dbus_interface = self.interface)
+                                     dbus_interface=self.interface)
 
     def SwitchChannel(self, channel):
-        """switch channel like SVDRP command CHAN. dbus.String:( +|-|<number>|<name>|<id>)"""
+        """switch channel like SVDRP command CHAN.
+        dbus.String:( +|-|<number>|<name>|<id>)"""
         return self.dbus.SwitchChannel(dbus.String(channel),
-                                dbus_interface = self.interface)
+                                       dbus_interface=self.interface)
 
     def SetVolume(self, volume):
         """set volume to dbus.String(<number 0 - 255>|+|-|mute)"""
         return self.dbus.SetVolume(dbus.String(volume),
-                                   dbus_interface = self.interface)
+                                   dbus_interface=self.interface)
 
     def GetVolume(self):
         """show volume level"""
-        return self.dbus.GetVolume(dbus_interface = self.interface)
+        return self.dbus.GetVolume(dbus_interface=self.interface)
 
 
 class Setup(DBusClass):
@@ -350,33 +365,35 @@ class Setup(DBusClass):
 
     def List(self):
         """list all setup entries"""
-        return self.dbus.List(dbus_interface = self.interface)
+        return self.dbus.List(dbus_interface=self.interface)
 
     def Get(self, parameter):
         """get setup parameter"""
-        return self.dbus.Get(parameter, dbus_interface = self.interface)
+        return self.dbus.Get(parameter, dbus_interface=self.interface)
 
     def Set(self, parameter, value):
         """set parameters to setup.conf
         Some parameters are known to be integers (look at setup.c) with a valid
         range. All others are handled as strings.
-        WARNING: Be careful to set values unknown to dbus2vdr. It will trigger a reload
-        of the whole setup.conf including calls to SetupParse of every plugin.
+        WARNING: Be careful to set values unknown to dbus2vdr.
+        It will trigger a reload of the whole setup.conf including calls
+        to SetupParse of every plugin.
         This might have unexpected side effects!
         You may also get/set/delete parameters for plugins with
         'pluginname.parameter'
-        but it is not guaranteed that it will work and that changes will affect the plugin's
-        behaviour immediately.
-        dbus2vdr will call the plugin's "SetupParse" function. If it returns true the value
-        is stored in the setup.conf. You may need to restart vdr.
+        but it is not guaranteed that it will work and that changes will
+        affect the plugin's behaviour immediately.
+        dbus2vdr will call the plugin's "SetupParse" function.
+        If it returns true the value is stored in the setup.conf.
+        You may need to restart vdr.
         """
-        return self.dbus.Set(parameter, value, dbus_interface = self.interface,
+        return self.dbus.Set(parameter, value, dbus_interface=self.interface,
                              signature='sv')
 
     def Del(self, parameter):
         """delete parameters from setup.conf
         delete all settings of one plugin: Setup.Del('pluginname.*')"""
-        return self.dbus.Del(parameter, dbus_interface = self.interface)
+        return self.dbus.Del(parameter, dbus_interface=self.interface)
 
 
 class Shutdown(DBusClass):
@@ -387,15 +404,22 @@ class Shutdown(DBusClass):
         """ask vdr if something would inhibit a shutdown,\
         use ignore_user=True to ignore user activity"""
         return self.dbus.ConfirmShutdown(dbus.Boolean(ignore_user),
-                                         dbus_interface = self.interface, timeout=120)
+                                         dbus_interface = self.interface,
+                                         timeout=120)
 
     def ManualStart(self):
-        """check if NextWakeupTime was within 600 s around the start of the vdr"""
-        return self.dbus.ManualStart(dbus_interface = self.interface)
+        """check if NextWakeupTime was within 600 s around the start
+        of the vdr"""
+        return self.dbus.ManualStart(dbus_interface=self.interface)
 
     def SetUserInactive(self):
         """set user inactive"""
-        return self.dbus.SetUserInactive(dbus_interface = self.interface)
+        return self.dbus.SetUserInactive(dbus_interface=self.interface)
+
+    def NextWakeupTimer(self):
+        """get next wakeup time and reason for wakeup,
+        e.g. "timer" or "plugin:<name>"""
+        return self.dbus.NextWakeupTimer(dbus_interface=self.interface)
 
 
 class Skin(DBusClass):
@@ -405,20 +429,20 @@ class Skin(DBusClass):
     def QueueMessage(self, message):
         """send a message to the vdr OSD"""
         return self.dbus.QueueMessage(dbus.String(message),
-                                      dbus_interface = self.interface)
+                                      dbus_interface=self.interface)
 
     def ListSkins(self):
         """list aviable vdr skins"""
-        return self.dbus.ListSkins(dbus_interface = self.interface)
+        return self.dbus.ListSkins(dbus_interface=self.interface)
 
     def CurrentSkin(self):
         """get current skin"""
-        return self.dbus.CurrentSkin(dbus_interface = self.interface)
+        return self.dbus.CurrentSkin(dbus_interface=self.interface)
 
     def SetSkin(self, skin):
         """set vdr skin"""
         return self.dbus.SetSkin(dbus.String(skin),
-                                 dbus_interface = self.interface)
+                                 dbus_interface=self.interface)
 
 
 class Timers(DBusClass):
@@ -427,7 +451,7 @@ class Timers(DBusClass):
 
     def List(self):
         """list all timers"""
-        return self.dbus.List(dbus_interface = self.interface)
+        return self.dbus.List(dbus_interface=self.interface)
 
     def Next(self):
         """The following is returned:
@@ -437,17 +461,17 @@ class Timers(DBusClass):
         uint64  starttime in seconds since epoch (time_t format)
         uint64  stoptime in seconds since epoch (time_t format)
         string  title of the event"""
-        return self.dbus.Next(dbus_interface = self.interface)
+        return self.dbus.Next(dbus_interface=self.interface)
 
     def New(self, timer):
         """create a new timer"""
         return self.dbus.New(dbus.String(timer),
-                             dbus_interface = self.interface)
+                             dbus_interface=self.interface)
 
     def Delete(self, id):
         """delete a timer using it's current id"""
         return self.dbus.Delete(dbus.Int32(id),
-                                dbus_interface = self.interface)
+                                dbus_interface=self.interface)
 
 
 class vdr(DBusClass):
@@ -456,7 +480,8 @@ class vdr(DBusClass):
 
     def Status(self):
         """get vdr status (Start|Ready|Stop)"""
-        return self.dbus.Status(dbus_interface = self.interface)
+        return self.dbus.Status(dbus_interface=self.interface)
+
 
 class Status(DBusClass):
     def __init__(self, bus, instance=0):
@@ -465,5 +490,6 @@ class Status(DBusClass):
     def IsReplaying(self):
         """check if vdr is replaying a recording
         returns the title, recording path and a boolean value"""
-        title, path, playerActive = self.dbus.IsReplaying(dbus_interface = self.interface)
+        title, path, playerActive = self.dbus.IsReplaying(
+            dbus_interface=self.interface)
         return title, path, playerActive
