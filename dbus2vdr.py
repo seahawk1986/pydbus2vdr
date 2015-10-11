@@ -234,7 +234,7 @@ class Plugins(DBusClass):
         raw = self.List()
         self.plugins = {}
         for name, version in raw:
-            logging.debug(u"found plugin %s %s" % (name, version))
+            logging.debug("found plugin %s %s" % (name, version))
             self.plugins[name] = version
         return self.plugins
 
