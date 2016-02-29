@@ -21,7 +21,8 @@ class DBus2VDR:
         if "all" in modules:
             self.modules = [
                 "Recordings", "Channels", "EPG", "Plugins", "Remote",
-                "Setup", "Shutdown", "Skin", "Timers", "vdr", "Status"
+                "Setup", "Shutdown", "Skin", "Timers", "vdr", "Status",
+                "Devices"
             ]
         else:
             self.modules = modules
@@ -502,11 +503,13 @@ class Devices(DBusClass):
     def List(self):
         """list devices. Returns a list of all devices with
         index, number, hasDecoder, isPrimary and name for each"""
-        return self.dbus.List(dbus_interface=self.interface)
+        return list([self.device(*dev) for dev in self.dbus.List(
+            dbus_interface=self.interface)])
 
     def GetPrimary(self):
         """get the current primary device"""
-        return self.device(self.dbus.GetPrimary(dbus_interface=self.interface))
+        return self.device(
+            *self.dbus.GetPrimary(dbus_interface=self.interface))
 
     def RequestPrimary(self, index):
         """request switch to primary device by index"""
@@ -515,5 +518,5 @@ class Devices(DBusClass):
     def RequestPrimaryByName(self, name):
         devices = self.List()
         index = next(
-            (device.index for device in devices if device.name == name))
+            device.index for device in devices if device.name == name)
         self.RequestPrimary(index)
