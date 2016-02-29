@@ -2,6 +2,7 @@
 import dbus
 import logging
 from collections import defaultdict
+from collections import namedtuple
 
 
 class DBus2VDR:
@@ -30,14 +31,13 @@ class DBus2VDR:
             self.vdr_obj = self.vdr_addr
 
         if self.vdr_obj in self.bus.list_names():
-            #print("found vdr")
             if self.checkVDRstatus():
-                #print("vdr ready")
                 self.init_modules()
         if watchdog:
             self.watchVDRstatus()
-            self.watchBus4VDR()  # check for name (de-)registering,
-                                 # needed if vdr crashes
+            # check for name (de-)registering,
+            # needed if vdr crashes
+            self.watchBus4VDR()
 
     def init_modules(self):
         if self.update:
@@ -45,7 +45,6 @@ class DBus2VDR:
                 exec("%s(self.bus)" % module)
                 setattr(self, module, eval(
                     module + "(self.bus, self.instance)"))
-                #print("init %s" % module)
                 self.update = False
 
     def checkVDRstatus(self):
@@ -78,7 +77,7 @@ class DBus2VDR:
                                      )
 
     def dbus2vdr_signal(self, *args, **kwargs):
-        #print(kwargs['member'])
+        # print(kwargs['member'])
         if kwargs['member'] == "Ready":
             self.init_modules()
         if kwargs['member'] == "Stop" or kwargs['member'] == "Start":
@@ -91,7 +90,7 @@ class DBus2VDR:
 
     def name_owner_changed(self, *args, **kwargs):
         if len(args[0]) == 0:
-            #print("vdr has no dbus name ownership")
+            # print("vdr has no dbus name ownership")
             if not self.update:
                 # VDR lost connection to dbus without sending a "Stop",
                 # so let's assume a crash
@@ -100,8 +99,8 @@ class DBus2VDR:
             self.update = True
         else:
             pass
-            #print("vdr has dbus name ownership")
-        #print(args[0])
+            # print("vdr has dbus name ownership")
+        # print(args[0])
 
     def onSignal(self, event, callback=None):
         """register a callback for "event"."""
@@ -135,10 +134,10 @@ class DBusClass(object):
 
     def dbusSend(self, dbus_call, *args, **kwargs):
         try:
-            #print("Sending {0}".format(dbus_call))
+            # print("Sending {0}".format(dbus_call))
             return dbus_call(*args, **kwargs)
         except Exception as error:
-            #print("Error: {0}".format(error))
+            print("Error: {0}".format(error))
             return False
 
 
@@ -492,3 +491,29 @@ class Status(DBusClass):
         title, path, playerActive = self.dbus.IsReplaying(
             dbus_interface=self.interface)
         return title, path, playerActive
+
+
+class Devices(DBusClass):
+    def __init__(self, bus, instance=0):
+        super(Devices, self).__init__(bus, "/Devices", "device", instance)
+        self.device = namedtuple('Device', ["index", "number", "hasDecoder",
+                                            "isPrimary", "name"])
+
+    def List(self):
+        """list devices. Returns a list of all devices with
+        index, number, hasDecoder, isPrimary and name for each"""
+        return self.dbus.List(dbus_interface=self.interface)
+
+    def GetPrimary(self):
+        """get the current primary device"""
+        return self.device(self.dbus.GetPrimary(dbus_interface=self.interface))
+
+    def RequestPrimary(self, index):
+        """request switch to primary device by index"""
+        return self.dbus.RequestPrimary(index, dbus_interface=self.interface)
+
+    def RequestPrimaryByName(self, name):
+        devices = self.List()
+        index = next(
+            (device.index for device in devices if device.name == name))
+        self.RequestPrimary(index)
