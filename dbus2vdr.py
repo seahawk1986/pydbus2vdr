@@ -516,7 +516,18 @@ class Devices(DBusClass):
         return self.dbus.RequestPrimary(index, dbus_interface=self.interface)
 
     def RequestPrimaryByName(self, name):
+        """request switch to primary device by name, first match wins"""
         devices = self.List()
         index = next(
             device.index for device in devices if device.name == name)
         self.RequestPrimary(index)
+
+    def GetNullDevice(self):
+        """returns the index of dbus2vdr's own nulldevice"""
+        index = self.dbus.GetNullDevice(dbus_interface=self.interface)
+        if index > -1:
+            return index
+        else:
+            raise ValueError(('nulldevice not found. '
+                              'start dbus2vdr with --nulldevice'))
+            
