@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import dbus
 import logging
+import sys
 from collections import defaultdict
 from collections import namedtuple
 
@@ -36,16 +37,15 @@ class DBus2VDR:
                 self.init_modules()
         if watchdog:
             self.watchVDRstatus()
-            # check for name (de-)registering,
-            # needed if vdr crashes
+            # check for name (de-)registering, needed if vdr crashes
             self.watchBus4VDR()
 
     def init_modules(self):
         if self.update:
             for module in self.modules:
-                exec("%s(self.bus)" % module)
-                setattr(self, module, eval(
-                    module + "(self.bus, self.instance)"))
+                setattr(self, module,
+                        getattr(sys.modules[__name__], module)(
+                            self.bus, self.instance))
                 self.update = False
 
     def checkVDRstatus(self):
@@ -447,10 +447,28 @@ class Skin(DBusClass):
 class Timers(DBusClass):
     def __init__(self, bus, instance=0):
         super(Timers, self).__init__(bus, "/Timers", 'timer')
+        self.timer = namedtuple('Timer', ["status", "channel_id", "date",
+                                          "start", "end", "priority",
+                                          "lifetime", "file", "aux", ])
+        # "index"])
+        # example output
+        # ['1', 'C-1-1051-11100', '2016-03-05', '1936', '1937', '50', '99',
+        #  'Teste|meinen|Timer', '']
 
     def List(self):
-        """list all timers"""
+        """list all timers in raw format"""
         return self.dbus.List(dbus_interface=self.interface)
+
+    def list_timers(self, raw=False):
+        """list all timers"""
+        timers = []
+        for timer in self.List():
+            props = timer.split(":")
+            if not raw:
+                props[7] = props[7].replace("|", ":")  # VDR replaces ":"
+                props[8] = props[8].replace("|", ":")  # with a pipe symbol "|"
+            timers.append(self.timer(*props))
+        return timers
 
     def Next(self):
         """The following is returned:
@@ -463,9 +481,19 @@ class Timers(DBusClass):
         return self.dbus.Next(dbus_interface=self.interface)
 
     def New(self, timer):
-        """create a new timer"""
+        """create a new timer by a complete timer string for vdr"""
         return self.dbus.New(dbus.String(timer),
                              dbus_interface=self.interface)
+
+    def new_timer(self, status, channel_id, date, start, end,
+                  priority, lifetime, filename, aux):
+        """create a new timer by passing all elements seperately"""
+        filename = filename.replace(':', '|')
+        aux = aux.replace(':', '|')
+        timer = "%s:%s:%s:%s:%s:%s:%s:%s:%s:" % (
+            status, channel_id, date, start, end, priority, lifetime,
+            filename, aux)
+        return self.New(timer)
 
     def Delete(self, id):
         """delete a timer using it's current id"""
@@ -503,28 +531,34 @@ class Devices(DBusClass):
     def List(self):
         """list devices. Returns a list of all devices with
         index, number, hasDecoder, isPrimary and name for each"""
-        return list([self.device(*dev) for dev in self.dbus.List(
-            dbus_interface=self.interface)])
+        return self.dbus.List(dbus_interface=self.interface)
+
+    def list_devices(self):
+        """list devices. Returns a list of named tuples for  all devices with
+        index, number, hasDecoder, isPrimary and name for each"""
+        return list(self.device(*dev) for dev in self.List())
 
     def GetPrimary(self):
         """get the current primary device"""
-        return self.device(
-            *self.dbus.GetPrimary(dbus_interface=self.interface))
+        return self.dbus.GetPrimary(dbus_interface=self.interface)
+
+    def get_primary_device(self):
+        return self.device(*self.GetPrimary())
 
     def RequestPrimary(self, index):
         """request switch to primary device by index"""
         return self.dbus.RequestPrimary(index, dbus_interface=self.interface)
 
-    def RequestPrimaryByName(self, name):
+    def request_primary_by_name(self, name):
         """request switch to primary device by name, first match wins"""
-        devices = self.List()
+        devices = self.list_devices()
         try:
             index = next(
                 device.index for device in devices if device.name == name)
         except StopIteration:
             raise ValueError("%s is not available" % name)
         else:
-            self.RequestPrimary(index)
+            return self.RequestPrimary(index)
 
     def GetNullDevice(self):
         """returns the index of dbus2vdr's own nulldevice"""
