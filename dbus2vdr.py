@@ -492,21 +492,30 @@ class Timers(DBusClass):
                 int32   id
                 string  remote (with vdr >= 2.3.1)
                 uint32  flags
-                string  channel-id
-                string  day/weekdays
+                string  channel_id
+                string  day_weekdays (repeats)
                 int32   start
                 int32   stop
                 int32   priority
                 int32   lifetime
                 string  filename
                 string  aux
-                uint32  event-id
+                uint32  event_id
                 boolean recording
                 boolean pending
-                boolean in vps margin
+                boolean in_vps_margin
         """
         timers = self.dbus.ListDetailed(dbus_interface=self.interface)
         return timers
+
+    def get_detailed_timers(self):
+        return (self.detailed_t(*t) for t in self.ListDetailed())
+
+    def get_local_timers(self):
+        return (t for t in self.get_detailed_timers() if not t.remote)
+
+    def get_remote_timers(self):
+        return (t for t in self.get_detailed_timers() if t.remote)
 
     def Next(self):
         """The following is returned:
