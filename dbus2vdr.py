@@ -454,18 +454,18 @@ class Timers(DBusClass):
                                      ["id",
                                       "remote",
                                       "flags",
-                                      "channel-id",
-                                      "day/weekdays",
+                                      "channel_id",
+                                      "day_weekdays",
                                       "start",
                                       "stop",
                                       "priority",
                                       "lifetime",
                                       "filename",
                                       "aux",
-                                      "event-id",
+                                      "event_id",
                                       "recording",
                                       "pending",
-                                      "in vps margin"]
+                                      "in_vps_margin"]
                                      )
         # "index"])
         # example output
