@@ -83,7 +83,7 @@ class DBus2VDR:
             self.init_modules()
         if kwargs['member'] == "Stop" or kwargs['member'] == "Start":
             self.update = True
-        for callback in self.EVENT_CALLBACKS.get(kwargs['member'], ()):
+        for callback in self.EVENT_CALLBACKS[kwargs['member']]:
             callback(*args, **kwargs)
 
     def watchBus4VDR(self):
@@ -95,7 +95,7 @@ class DBus2VDR:
             if not self.update:
                 # VDR lost connection to dbus without sending a "Stop",
                 # so let's assume a crash
-                for callback in self.EVENT_CALLBACKS.get("Stop", ()):
+                for callback in self.EVENT_CALLBACKS["Stop"]:
                     callback(*args, **kwargs)
             self.update = True
         else:
