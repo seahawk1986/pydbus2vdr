@@ -450,6 +450,23 @@ class Timers(DBusClass):
         self.timer = namedtuple('Timer', ["status", "channel_id", "date",
                                           "start", "end", "priority",
                                           "lifetime", "file", "aux", ])
+        self.detailed_t = namedtuple('Timer',
+                                     ["id",
+                                      "remote",
+                                      "flags",
+                                      "channel-id",
+                                      "day/weekdays",
+                                      "start",
+                                      "stop",
+                                      "priority",
+                                      "lifetime",
+                                      "filename",
+                                      "aux",
+                                      "event-id",
+                                      "recording",
+                                      "pending",
+                                      "in vps margin"]
+                                     )
         # "index"])
         # example output
         # ['1', 'C-1-1051-11100', '2016-03-05', '1936', '1937', '50', '99',
@@ -468,6 +485,27 @@ class Timers(DBusClass):
                 props[7] = props[7].replace("|", ":")  # VDR replaces ":"
                 props[8] = props[8].replace("|", ":")  # with a pipe symbol "|"
             timers.append(self.timer(*props))
+        return timers
+
+    def ListDetailed(self):
+        """ list all timers as array of structs with this order of fields:
+                int32   id
+                string  remote (with vdr >= 2.3.1)
+                uint32  flags
+                string  channel-id
+                string  day/weekdays
+                int32   start
+                int32   stop
+                int32   priority
+                int32   lifetime
+                string  filename
+                string  aux
+                uint32  event-id
+                boolean recording
+                boolean pending
+                boolean in vps margin
+        """
+        timers = self.dbus.ListDetailed(dbus_interface=self.interface)
         return timers
 
     def Next(self):
