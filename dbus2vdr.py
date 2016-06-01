@@ -240,8 +240,8 @@ class Plugins(DBusClass):
 
     def check_plugin(self, plugin):
         try:
-            len(self.plugins)
-        except:
+            _ = self.plugins
+        except AttributeError:
             self.get_dbusPlugins()
         if plugin in self.plugins:
             return True
